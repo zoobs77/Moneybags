@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Left Over — Monthly Budget</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22Left%20Over%22,%22short_name%22:%22Left%20Over%22,%22display%22:%22standalone%22}">
+<style>
+  :root{
+    --ink:#2B1A4A;
+    --ink-soft:#3B2563;
+    --paper:#FFFBF2;
+    --paper-dim:#FFF3D6;
+    --green:#0FBE7D;
+    --amber:#FFB23E;
+    --coral:#FF5C7A;
+    --pink:#FF4FA3;
+    --blue:#3DA8FF;
+    --purple:#A86BFF;
+    --yellow:#FFD93D;
+    --slate:#9C8BC4;
+    --slate-light:#C7B8E8;
+    --line:rgba(255,255,255,0.14);
+    --line-dark:rgba(43,26,74,0.12);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+
+  body{
+    background:linear-gradient(160deg, #2B1A4A 0%, #4A1F6B 45%, #6B2A8C 100%);
+    color:var(--paper);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+
+  .display{
+    font-family:'Archivo Black','Arial Black',sans-serif;
+  }
+
+  /* ===== HERO / RECEIPT TOTAL ===== */
+  .hero{
+    padding:28px 20px 24px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+
+  .hero-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+  }
+
+  .month-label{
+    font-size:13px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--slate-light);
+    font-weight:600;
+  }
+
+  .month-nav{
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+
+  .month-btn{
+    background:rgba(255,255,255,0.12);
+    border:1px solid var(--line);
+    color:var(--paper);
+    width:30px;height:30px;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .month-btn:active{background:rgba(255,255,255,0.25);}
+
+  .remaining-tag{
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--slate-light);
+    font-weight:600;
+    margin-bottom:2px;
+  }
+
+  .remaining-amount{
+    font-size:clamp(52px, 16vw, 76px);
+    line-height:0.95;
+    letter-spacing:-0.01em;
+    margin:0;
+    word-break:break-all;
+  }
+  .remaining-amount.ok{color:var(--green);}
+  .remaining-amount.tight{color:var(--amber);}
+  .remaining-amount.over{color:var(--coral);}
+
+  .remaining-sub{
+    font-size:13px;
+    color:var(--slate-light);
+    margin-top:8px;
+  }
+
+  .progress-track{
+    height:8px;
+    background:var(--ink-soft);
+    border-radius:999px;
+    margin-top:16px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    border-radius:999px;
+    transition:width 0.3s ease;
+  }
+  .progress-fill.ok{background:var(--green);}
+  .progress-fill.tight{background:var(--amber);}
+  .progress-fill.over{background:var(--coral);}
+
+  /* ===== STAT ROW ===== */
+  .stat-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:0 20px 20px;
+  }
+  .stat{
+    border-radius:16px;
+    padding:16px 18px;
+  }
+  .stat:first-child{
+    background:linear-gradient(135deg, rgba(15,190,125,0.25), rgba(15,190,125,0.08));
+    border:1px solid rgba(15,190,125,0.35);
+  }
+  .stat:last-child{
+    background:linear-gradient(135deg, rgba(255,92,122,0.25), rgba(255,92,122,0.08));
+    border:1px solid rgba(255,92,122,0.35);
+  }
+  .stat-label{
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--slate-light);
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .stat-value{
+    font-size:22px;
+    font-weight:700;
+    font-family:'Archivo Black','Arial Black',sans-serif;
+  }
+  .stat-value.income{color:var(--green);}
+  .stat-value.expense{color:var(--coral);}
+
+  /* ===== SECTIONS ===== */
+  .section{
+    padding:20px 18px;
+    margin:0 14px 14px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--line);
+  }
+
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:14px;
+  }
+
+  .section-title{
+    font-size:13px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:var(--paper);
+  }
+
+  .section-meta{
+    font-size:12px;
+    color:var(--slate-light);
+  }
+
+  .add-btn{
+    background:linear-gradient(135deg, var(--pink), var(--purple));
+    border:none;
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    padding:8px 16px;
+    border-radius:999px;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(255,79,163,0.35);
+  }
+  .add-btn:active{transform:scale(0.96);}
+
+  /* ===== DONUT CHART ===== */
+  .chart-box{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    margin-bottom:18px;
+    padding-bottom:18px;
+    border-bottom:1px solid var(--line);
+  }
+  .donut-wrap{
+    position:relative;
+    flex-shrink:0;
+    width:124px;
+    height:124px;
+  }
+  .donut-wrap svg{
+    transform:rotate(-90deg);
+  }
+  .donut-center{
+    position:absolute;
+    top:0;left:0;right:0;bottom:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .donut-center .total{
+    font-family:'Archivo Black','Arial Black',sans-serif;
+    font-size:18px;
+    line-height:1;
+  }
+  .donut-center .label{
+    font-size:9px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--slate-light);
+    margin-top:4px;
+  }
+  .legend{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+    min-width:0;
+  }
+  .legend-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+  }
+  .legend-dot{
+    width:10px;height:10px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .legend-name{
+    flex:1;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-weight:600;
+  }
+  .legend-pct{
+    color:var(--slate-light);
+    font-size:12px;
+    flex-shrink:0;
+  }
+  .cat-list{display:flex;flex-direction:column;gap:10px;}
+  .cat-row{
+    display:flex;flex-direction:column;gap:8px;
+    background:rgba(255,255,255,0.06);
+    border-radius:14px;
+    padding:12px 14px;
+  }
+  .cat-top{display:flex;justify-content:space-between;font-size:14px;align-items:center;}
+  .cat-name{font-weight:600;}
+  .cat-nums{color:var(--slate-light);font-size:13px;}
+  .cat-nums .spent{color:var(--paper);font-weight:600;}
+  .cat-track{height:8px;background:rgba(255,255,255,0.1);border-radius:999px;overflow:hidden;}
+  .cat-fill{height:100%;border-radius:999px;}
+  .cat-row .remove-x{
+    background:none;border:none;color:var(--slate-light);
+    font-size:18px;cursor:pointer;padding:0 4px;line-height:1;
+  }
+
+  /* ===== BILLS ===== */
+  .bill-list{display:flex;flex-direction:column;gap:2px;}
+  .bill-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    margin-bottom:8px;
+    border-radius:14px;
+    background:rgba(255,255,255,0.06);
+    border-left:4px solid var(--blue);
+  }
+  .bill-item:last-child{margin-bottom:0;}
+  .bill-item.is-paid{
+    border-left-color:var(--green);
+    opacity:0.7;
+  }
+
+  .bill-check{
+    width:24px;height:24px;
+    border-radius:7px;
+    border:2px solid var(--slate);
+    flex-shrink:0;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    background:none;
+    transition:all 0.15s ease;
+  }
+  .bill-check.paid{
+    background:linear-gradient(135deg, var(--green), #0A9D68);
+    border-color:var(--green);
+  }
+  .bill-check.paid::after{
+    content:"✓";
+    color:#fff;
+    font-size:14px;
+    font-weight:900;
+  }
+
+  .bill-info{flex:1;min-width:0;}
+  .bill-name{
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:2px;
+  }
+  .bill-name.paid-text{
+    color:var(--slate-light);
+    text-decoration:line-through;
+  }
+  .bill-due{
+    font-size:12px;
+    color:var(--slate-light);
+  }
+  .bill-amount{
+    font-size:16px;
+    font-weight:700;
+    font-family:'Archivo Black','Arial Black',sans-serif;
+    flex-shrink:0;
+  }
+  .bill-remove{
+    background:none;border:none;color:var(--slate-light);
+    font-size:18px;cursor:pointer;padding:4px 0 4px 8px;line-height:1;
+  }
+
+  .bills-summary{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    color:var(--slate-light);
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .bills-summary strong{color:var(--paper);}
+
+  /* ===== INCOME LIST ===== */
+  .income-list{display:flex;flex-direction:column;gap:2px;}
+  .income-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 14px;
+    margin-bottom:8px;
+    border-radius:14px;
+    background:rgba(15,190,125,0.1);
+    border-left:4px solid var(--green);
+  }
+  .income-item:last-child{margin-bottom:0;}
+  .income-name{font-size:15px;font-weight:600;}
+  .income-source{font-size:12px;color:var(--slate-light);}
+  .income-amount{
+    font-size:16px;font-weight:700;color:var(--green);
+    font-family:'Archivo Black','Arial Black',sans-serif;
+  }
+  .income-remove{
+    background:none;border:none;color:var(--slate-light);
+    font-size:18px;cursor:pointer;padding:4px 0 4px 8px;
+  }
+  .income-row-flex{display:flex;align-items:center;gap:12px;flex:1;}
+
+  /* ===== EMPTY STATE ===== */
+  .empty{
+    text-align:center;
+    padding:28px 0;
+    color:var(--slate-light);
+    font-size:14px;
+  }
+
+  /* ===== MODAL ===== */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    display:none;
+    align-items:flex-end;
+    z-index:100;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--paper-dim);
+    color:var(--ink);
+    width:100%;
+    border-radius:20px 20px 0 0;
+    padding:24px 20px 32px;
+    animation:slideUp 0.25s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+
+  .modal h3{
+    margin:0 0 18px;
+    font-family:'Archivo Black','Arial Black',sans-serif;
+    font-size:18px;
+  }
+
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--slate);
+    margin-bottom:6px;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--line-dark);
+    border-radius:10px;
+    font-size:16px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .field input:focus, .field select:focus{
+    outline:2px solid var(--green);
+    outline-offset:1px;
+  }
+
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+  }
+  .btn{
+    flex:1;
+    padding:14px;
+    border-radius:12px;
+    font-size:15px;
+    font-weight:700;
+    border:none;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-secondary{background:none;color:var(--slate);}
+  .btn-primary:active{background:var(--ink-soft);}
+
+  .color-picker{display:flex;gap:8px;margin-top:4px;}
+  .swatch{
+    width:32px;height:32px;border-radius:50%;
+    border:2px solid transparent;cursor:pointer;
+  }
+  .swatch.selected{border-color:var(--ink);}
+
+  /* ===== FOOTER ===== */
+  .footer-note{
+    text-align:center;
+    font-size:12px;
+    color:var(--slate-light);
+    padding:20px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-top">
+    <div class="month-label" id="monthLabel">JUNE 2026</div>
+    <div class="month-nav">
+      <button class="month-btn" id="prevMonth" aria-label="Previous month">‹</button>
+      <button class="month-btn" id="nextMonth" aria-label="Next month">›</button>
+    </div>
+  </div>
+
+  <div class="remaining-tag">Savings Left / Carry Over Money</div>
+  <div class="remaining-amount display ok" id="remainingAmount">$0</div>
+  <div class="remaining-sub" id="remainingSub">Add income to get started</div>
+
+  <div class="progress-track">
+    <div class="progress-fill ok" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="stat-label">Income</div>
+    <div class="stat-value income" id="totalIncome">$0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Spent + Bills</div>
+    <div class="stat-value expense" id="totalSpent">$0</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">Income</div>
+    <button class="add-btn" id="addIncomeBtn">+ Add</button>
+  </div>
+  <div class="income-list" id="incomeList"></div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">Monthly Bills</div>
+    <button class="add-btn" id="addBillBtn">+ Add</button>
+  </div>
+  <div class="bill-list" id="billList"></div>
+  <div class="bills-summary" id="billsSummary" style="display:none;">
+    <span>Paid <strong id="billsPaidCount">0</strong>/<span id="billsTotalCount">0</span></span>
+    <span><strong id="billsPaidAmount">$0</strong> of <strong id="billsTotalAmount">$0</strong></span>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">Spending Categories</div>
+    <button class="add-btn" id="addCatBtn">+ Add</button>
+  </div>
+  <div id="chartWrap"></div>
+  <div class="cat-list" id="catList"></div>
+</div>
+
+<div class="footer-note">Left Over · everything stays on this device</div>
+
+<!-- INCOME MODAL -->
+<div class="overlay" id="incomeOverlay">
+  <div class="modal">
+    <h3>Add income</h3>
+    <div class="field">
+      <label for="incomeName">Source</label>
+      <input type="text" id="incomeName" placeholder="e.g. Part-time job, Financial aid">
+    </div>
+    <div class="field">
+      <label for="incomeAmount">Amount this month</label>
+      <input type="number" id="incomeAmount" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="incomeCancel">Cancel</button>
+      <button class="btn btn-primary" id="incomeSave">Add income</button>
+    </div>
+  </div>
+</div>
+
+<!-- BILL MODAL -->
+<div class="overlay" id="billOverlay">
+  <div class="modal">
+    <h3>Add a bill</h3>
+    <div class="field">
+      <label for="billName">Bill name</label>
+      <input type="text" id="billName" placeholder="e.g. Rent, Phone, Spotify">
+    </div>
+    <div class="field">
+      <label for="billAmount">Amount</label>
+      <input type="number" id="billAmount" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="billDue">Due date (day of month)</label>
+      <input type="number" id="billDue" placeholder="e.g. 1" min="1" max="31">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="billCancel">Cancel</button>
+      <button class="btn btn-primary" id="billSave">Add bill</button>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY MODAL -->
+<div class="overlay" id="catOverlay">
+  <div class="modal">
+    <h3>Add a category</h3>
+    <div class="field">
+      <label for="catName">Category name</label>
+      <input type="text" id="catName" placeholder="e.g. Food, Gas, Fun money">
+    </div>
+    <div class="field">
+      <label for="catBudget">Monthly budget</label>
+      <input type="number" id="catBudget" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="catSpent">Already spent (optional)</label>
+      <input type="number" id="catSpent" placeholder="0.00" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Color</label>
+      <div class="color-picker" id="colorPicker">
+        <div class="swatch selected" data-color="#0FBE7D" style="background:#0FBE7D"></div>
+        <div class="swatch" data-color="#FFB23E" style="background:#FFB23E"></div>
+        <div class="swatch" data-color="#3DA8FF" style="background:#3DA8FF"></div>
+        <div class="swatch" data-color="#A86BFF" style="background:#A86BFF"></div>
+        <div class="swatch" data-color="#FF4FA3" style="background:#FF4FA3"></div>
+        <div class="swatch" data-color="#FFD93D" style="background:#FFD93D"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="catCancel">Cancel</button>
+      <button class="btn btn-primary" id="catSave">Add category</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "leftover_budget_data_v1";
+
+  function loadData(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { months:{} };
+  }
+
+  function saveData(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }catch(e){}
+  }
+
+  function monthKey(d){
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+  }
+
+  function monthLabel(d){
+    var names=["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+    return names[d.getMonth()] + " " + d.getFullYear();
+  }
+
+  function fmt(n){
+    var neg = n < 0;
+    var v = Math.abs(Math.round(n));
+    var s = "$" + v.toLocaleString("en-US");
+    return neg ? "-" + s : s;
+  }
+
+  var data = loadData();
+  var currentDate = new Date();
+  currentDate.setDate(1);
+
+  function getMonthData(){
+    var key = monthKey(currentDate);
+    if(!data.months[key]){
+      data.months[key] = { income:[], bills:[], categories:[] };
+    }
+    return data.months[key];
+  }
+
+  function uid(){
+    return Math.random().toString(36).slice(2,9);
+  }
+
+  // ===== RENDER =====
+  function render(){
+    document.getElementById("monthLabel").textContent = monthLabel(currentDate);
+    var m = getMonthData();
+
+    var totalIncome = m.income.reduce(function(s,i){return s+Number(i.amount||0);},0);
+    var billsTotal = m.bills.reduce(function(s,b){return s+Number(b.amount||0);},0);
+    var catsSpent = m.categories.reduce(function(s,c){return s+Number(c.spent||0);},0);
+    var totalSpent = billsTotal + catsSpent;
+    var remaining = totalIncome - totalSpent;
+
+    document.getElementById("totalIncome").textContent = fmt(totalIncome);
+    document.getElementById("totalSpent").textContent = fmt(totalSpent);
+
+    var remEl = document.getElementById("remainingAmount");
+    var subEl = document.getElementById("remainingSub");
+    var fillEl = document.getElementById("progressFill");
+
+    remEl.textContent = fmt(remaining);
+    remEl.className = "remaining-amount display";
+    fillEl.className = "progress-fill";
+
+    var pct = totalIncome > 0 ? Math.max(0, Math.min(100, (totalSpent/totalIncome)*100)) : 0;
+    fillEl.style.width = pct + "%";
+
+    var status;
+    if(totalIncome === 0 && totalSpent === 0){
+      status = "ok";
+      subEl.textContent = "Add income to get started";
+    } else if(remaining < 0){
+      status = "over";
+      subEl.textContent = "You're " + fmt(Math.abs(remaining)) + " over this month";
+    } else if(totalIncome > 0 && remaining / totalIncome < 0.15){
+      status = "tight";
+      subEl.textContent = "Getting tight — " + fmt(remaining) + " left";
+    } else {
+      status = "ok";
+      subEl.textContent = fmt(remaining) + " left out of " + fmt(totalIncome);
+    }
+    remEl.classList.add(status);
+    fillEl.classList.add(status);
+
+    renderIncome(m);
+    renderBills(m);
+    renderCategories(m);
+    saveData();
+  }
+
+  function renderIncome(m){
+    var list = document.getElementById("incomeList");
+    if(m.income.length === 0){
+      list.innerHTML = '<div class="empty">No income added yet</div>';
+      return;
+    }
+    list.innerHTML = "";
+    m.income.forEach(function(item){
+      var row = document.createElement("div");
+      row.className = "income-item";
+      row.innerHTML =
+        '<div class="income-row-flex">' +
+          '<div>' +
+            '<div class="income-name">' + escapeHtml(item.name) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="income-row-flex" style="justify-content:flex-end;">' +
+          '<div class="income-amount">' + fmt(Number(item.amount)) + '</div>' +
+          '<button class="income-remove" data-id="' + item.id + '" aria-label="Remove">×</button>' +
+        '</div>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll(".income-remove").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var m = getMonthData();
+        m.income = m.income.filter(function(i){return i.id !== btn.dataset.id;});
+        render();
+      });
+    });
+  }
+
+  function renderBills(m){
+    var list = document.getElementById("billList");
+    var summary = document.getElementById("billsSummary");
+    if(m.bills.length === 0){
+      list.innerHTML = '<div class="empty">No bills added yet</div>';
+      summary.style.display = "none";
+      return;
+    }
+    summary.style.display = "flex";
+    var sorted = m.bills.slice().sort(function(a,b){return (a.due||32)-(b.due||32);});
+    list.innerHTML = "";
+    sorted.forEach(function(bill){
+      var row = document.createElement("div");
+      row.className = "bill-item" + (bill.paid ? " is-paid" : "");
+      var dueText = bill.due ? "Due on the " + ordinal(bill.due) : "No due date set";
+      row.innerHTML =
+        '<button class="bill-check ' + (bill.paid?"paid":"") + '" data-id="' + bill.id + '" aria-label="Mark paid"></button>' +
+        '<div class="bill-info">' +
+          '<div class="bill-name ' + (bill.paid?"paid-text":"") + '">' + escapeHtml(bill.name) + '</div>' +
+          '<div class="bill-due">' + dueText + '</div>' +
+        '</div>' +
+        '<div class="bill-amount" style="color:' + (bill.paid?"var(--slate-light)":"var(--paper)") + '">' + fmt(Number(bill.amount)) + '</div>' +
+        '<button class="bill-remove" data-id="' + bill.id + '" aria-label="Delete bill">×</button>';
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll(".bill-check").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var m = getMonthData();
+        var b = m.bills.find(function(x){return x.id===btn.dataset.id;});
+        if(b) b.paid = !b.paid;
+        render();
+      });
+    });
+    list.querySelectorAll(".bill-remove").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var m = getMonthData();
+        m.bills = m.bills.filter(function(b){return b.id !== btn.dataset.id;});
+        render();
+      });
+    });
+
+    var paidCount = m.bills.filter(function(b){return b.paid;}).length;
+    var paidAmt = m.bills.filter(function(b){return b.paid;}).reduce(function(s,b){return s+Number(b.amount||0);},0);
+    var totalAmt = m.bills.reduce(function(s,b){return s+Number(b.amount||0);},0);
+    document.getElementById("billsPaidCount").textContent = paidCount;
+    document.getElementById("billsTotalCount").textContent = m.bills.length;
+    document.getElementById("billsPaidAmount").textContent = fmt(paidAmt);
+    document.getElementById("billsTotalAmount").textContent = fmt(totalAmt);
+  }
+
+  function renderChart(m){
+    var wrap = document.getElementById("chartWrap");
+    var withSpend = m.categories.filter(function(c){ return Number(c.spent||0) > 0; });
+    var total = withSpend.reduce(function(s,c){ return s + Number(c.spent||0); }, 0);
+
+    if(withSpend.length === 0 || total === 0){
+      wrap.innerHTML = '';
+      return;
+    }
+
+    var sorted = withSpend.slice().sort(function(a,b){ return Number(b.spent) - Number(a.spent); });
+
+    var R = 52, C = 2 * Math.PI * R, circumference = C;
+    var offset = 0;
+    var circles = sorted.map(function(cat){
+      var pct = Number(cat.spent) / total;
+      var len = pct * circumference;
+      var gap = circumference - len;
+      var circle = '<circle cx="62" cy="62" r="' + R + '" fill="none" stroke="' + cat.color + '" stroke-width="16" ' +
+        'stroke-dasharray="' + len.toFixed(2) + ' ' + gap.toFixed(2) + '" stroke-dashoffset="' + (-offset).toFixed(2) + '"/>';
+      offset += len;
+      return circle;
+    }).join('');
+
+    var legendRows = sorted.map(function(cat){
+      var pct = Math.round((Number(cat.spent) / total) * 100);
+      return '<div class="legend-row">' +
+        '<span class="legend-dot" style="background:' + cat.color + '"></span>' +
+        '<span class="legend-name">' + escapeHtml(cat.name) + '</span>' +
+        '<span class="legend-pct">' + fmt(Number(cat.spent)) + ' · ' + pct + '%</span>' +
+      '</div>';
+    }).join('');
+
+    wrap.innerHTML =
+      '<div class="chart-box">' +
+        '<div class="donut-wrap">' +
+          '<svg width="124" height="124" viewBox="0 0 124 124">' + circles + '</svg>' +
+          '<div class="donut-center">' +
+            '<div class="total">' + fmt(total) + '</div>' +
+            '<div class="label">Total spent</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="legend">' + legendRows + '</div>' +
+      '</div>';
+  }
+
+  function renderCategories(m){
+    renderChart(m);
+    var list = document.getElementById("catList");
+    if(m.categories.length === 0){
+      list.innerHTML = '<div class="empty">No categories added yet</div>';
+      return;
+    }
+    list.innerHTML = "";
+    m.categories.forEach(function(cat){
+      var spent = Number(cat.spent||0);
+      var budget = Number(cat.budget||0);
+      var pct = budget>0 ? Math.min(100,(spent/budget)*100) : 0;
+      var over = budget>0 && spent>budget;
+      var row = document.createElement("div");
+      row.className = "cat-row";
+      row.innerHTML =
+        '<div class="cat-top">' +
+          '<span class="cat-name">' + escapeHtml(cat.name) + '</span>' +
+          '<span class="cat-nums"><span class="spent" style="color:' + (over?"var(--coral)":"var(--paper)") + '">' + fmt(spent) + '</span> / ' + fmt(budget) + '</span>' +
+          '<button class="remove-x" data-id="' + cat.id + '" aria-label="Remove category">×</button>' +
+        '</div>' +
+        '<div class="cat-track"><div class="cat-fill" style="width:' + pct + '%; background:' + (over?"var(--coral)":cat.color) + '"></div></div>';
+      list.appendChild(row);
+    });
+    list.querySelectorAll(".remove-x").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var m = getMonthData();
+        m.categories = m.categories.filter(function(c){return c.id !== btn.dataset.id;});
+        render();
+      });
+    });
+  }
+
+  function ordinal(n){
+    n = Number(n);
+    var s = ["th","st","nd","rd"], v = n%100;
+    return n + (s[(v-20)%10] || s[v] || s[0]);
+  }
+
+  function escapeHtml(str){
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ===== MONTH NAV =====
+  document.getElementById("prevMonth").addEventListener("click", function(){
+    currentDate.setMonth(currentDate.getMonth()-1);
+    render();
+  });
+  document.getElementById("nextMonth").addEventListener("click", function(){
+    currentDate.setMonth(currentDate.getMonth()+1);
+    render();
+  });
+
+  // ===== MODALS =====
+  function openModal(id){ document.getElementById(id).classList.add("show"); }
+  function closeModal(id){ document.getElementById(id).classList.remove("show"); }
+
+  // Income modal
+  document.getElementById("addIncomeBtn").addEventListener("click", function(){
+    document.getElementById("incomeName").value = "";
+    document.getElementById("incomeAmount").value = "";
+    openModal("incomeOverlay");
+  });
+  document.getElementById("incomeCancel").addEventListener("click", function(){ closeModal("incomeOverlay"); });
+  document.getElementById("incomeOverlay").addEventListener("click", function(e){ if(e.target===this) closeModal("incomeOverlay"); });
+  document.getElementById("incomeSave").addEventListener("click", function(){
+    var name = document.getElementById("incomeName").value.trim();
+    var amount = parseFloat(document.getElementById("incomeAmount").value);
+    if(!name || isNaN(amount)) return;
+    var m = getMonthData();
+    m.income.push({ id:uid(), name:name, amount:amount });
+    closeModal("incomeOverlay");
+    render();
+  });
+
+  // Bill modal
+  document.getElementById("addBillBtn").addEventListener("click", function(){
+    document.getElementById("billName").value = "";
+    document.getElementById("billAmount").value = "";
+    document.getElementById("billDue").value = "";
+    openModal("billOverlay");
+  });
+  document.getElementById("billCancel").addEventListener("click", function(){ closeModal("billOverlay"); });
+  document.getElementById("billOverlay").addEventListener("click", function(e){ if(e.target===this) closeModal("billOverlay"); });
+  document.getElementById("billSave").addEventListener("click", function(){
+    var name = document.getElementById("billName").value.trim();
+    var amount = parseFloat(document.getElementById("billAmount").value);
+    var due = parseInt(document.getElementById("billDue").value);
+    if(!name || isNaN(amount)) return;
+    var m = getMonthData();
+    m.bills.push({ id:uid(), name:name, amount:amount, due: isNaN(due)?null:due, paid:false });
+    closeModal("billOverlay");
+    render();
+  });
+
+  // Category modal
+  var selectedColor = "#0FBE7D";
+  document.getElementById("colorPicker").addEventListener("click", function(e){
+    if(!e.target.classList.contains("swatch")) return;
+    document.querySelectorAll(".swatch").forEach(function(s){s.classList.remove("selected");});
+    e.target.classList.add("selected");
+    selectedColor = e.target.dataset.color;
+  });
+  document.getElementById("addCatBtn").addEventListener("click", function(){
+    document.getElementById("catName").value = "";
+    document.getElementById("catBudget").value = "";
+    document.getElementById("catSpent").value = "";
+    openModal("catOverlay");
+  });
+  document.getElementById("catCancel").addEventListener("click", function(){ closeModal("catOverlay"); });
+  document.getElementById("catOverlay").addEventListener("click", function(e){ if(e.target===this) closeModal("catOverlay"); });
+  document.getElementById("catSave").addEventListener("click", function(){
+    var name = document.getElementById("catName").value.trim();
+    var budget = parseFloat(document.getElementById("catBudget").value);
+    var spent = parseFloat(document.getElementById("catSpent").value) || 0;
+    if(!name || isNaN(budget)) return;
+    var m = getMonthData();
+    m.categories.push({ id:uid(), name:name, budget:budget, spent:spent, color:selectedColor });
+    closeModal("catOverlay");
+    render();
+  });
+
+  // Tapping a category lets you log spending against it quickly
+  document.getElementById("catList").addEventListener("click", function(e){
+    var row = e.target.closest(".cat-row");
+    if(!row || e.target.classList.contains("remove-x")) return;
+    var nameEl = row.querySelector(".cat-name");
+    var m = getMonthData();
+    var cat = m.categories.find(function(c){ return c.name === nameEl.textContent; });
+    if(!cat) return;
+    var add = prompt('Add spending to "' + cat.name + '" (enter amount):');
+    if(add === null) return;
+    var val = parseFloat(add);
+    if(isNaN(val)) return;
+    cat.spent = Number(cat.spent||0) + val;
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
